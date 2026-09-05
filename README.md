@@ -5,8 +5,6 @@
 ```
 fintech545_assignment1.ipynb   # the analysis (already executed; outputs are saved in the file)
 problem1.csv ... problem5.csv  # data, one file per question
-requirements.txt               # exact package versions this was tested against
-figures/                       # created on first run; holds the two saved PNGs (Q1, Q2)
 ```
 
 All five `problemN.csv` files must sit in the **same directory** as the notebook — every
@@ -17,7 +15,6 @@ All five `problemN.csv` files must sit in the **same directory** as the notebook
 ```bash
 python3 -m venv venv
 source venv/bin/activate            # Windows: venv\Scripts\activate
-pip install -r requirements.txt
 python -m ipykernel install --user --name python3 --display-name "Python 3"
 ```
 
