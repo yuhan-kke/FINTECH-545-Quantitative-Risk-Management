@@ -1,0 +1,6 @@
+ID,Option Type,Underlying,Strike,DaysToMaturity,DayPerYear,RiskFreeRate,DividendRate,ImpliedVol
+1,Call,100,100,50,365,0.045,0,0.2
+2,Put,100,100,50,365,0.045,0,0.2
+3,Call,100,90,400,365,0.045,0.02,0.4
+4,Put,100,110,400,365,0.045,0.02,0.4
+,,,,,,,,
