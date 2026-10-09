@@ -1,0 +1,16 @@
+(b)
+       alpha      beta  resid_sd
+A  0.000205  1.035278  0.012888
+B  0.000315  0.935417  0.011538
+residual correlation: 0.6983
+
+(c)
+                             P1       P2
+full residual cov      50239.0  15845.0
+independent residuals  44567.0  28532.0
+(d) delta normal VaR P1: 50,415
+(d) delta normal VaR P2: 15,834
+
+(f) max |implied cov - sample cov| = 1.6263032587282567e-19
+closed-form VaR, full residuals: {'P1': 50415, 'P2': 15834}
+closed-form VaR, independent residuals: {'P1': 44494, 'P2': 28507}

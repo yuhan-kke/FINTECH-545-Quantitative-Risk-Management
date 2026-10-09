@@ -1,0 +1,60 @@
+(a)
+                           X1           X2           X3
+n                1000.000000  1000.000000  1000.000000
+mean                0.000257    -0.000252     0.000890
+variance            0.000141     0.000261     0.000100
+std                 0.011894     0.016168     0.010019
+skew               -0.034226    -0.615040     0.074066
+excess_kurtosis    -0.117133     7.124957     2.874089
+X1: drop row 951 (-0.0400) -> skew -0.005, excess kurt -0.188
+X2: drop row 951 (-0.1429) -> skew 0.056, excess kurt 1.725
+X3: drop row 951 (-0.0612) -> skew 0.313, excess kurt 1.731
+
+(b)
+     pair  lower  upper
+0  X1-X2      6      8
+1  X1-X3      7     12
+2  X2-X3      6      9 
+expected if independent: 0.6250000000000001
+
+(c)
+         AICc normal       AICc t     chosen          t nu   t sigma
+series                                                             
+X1     -6022.536513 -6020.524453     Normal  1.275916e+13  0.011888
+X2     -5408.494036 -5518.184759  Student-t  5.271476e+00  0.012544
+X3     -6365.691239 -6428.015517  Student-t  6.094881e+00  0.008181
+
+(d) R =
+ [[1.     0.5833 0.5029]
+ [0.5833 1.     0.4644]
+ [0.5029 0.4644 1.    ]] 
+               loglik        nu  k        AICc         BIC
+copula                                                   
+gaussian  350.440279       NaN  3 -694.856461 -680.157292
+t         451.999489  3.659926  4 -895.958777 -876.367957
+
+(e)
+              VaR 5%    ES 5%   VaR 1%     ES 1%
+Gaussian    49410.0  66383.0  76234.0   93827.0
+t           48777.0  68281.0  78840.0  102116.0
+Historical  47541.0  65699.0  67264.0  102424.0
+
+(f) Gaussian
+     pair  lower  upper
+0  X1-X2   6.39   6.38
+1  X1-X3   4.61   4.68
+2  X2-X3   4.55   4.49
+
+(f) t
+     pair  lower  upper
+0  X1-X2   9.17   9.88
+1  X1-X3   8.84   8.25
+2  X2-X3   7.83   7.40
+
+(i) total gain: 101.559
+days with NO series in outer 5% : 793  contribution: 50.478
+days with >=1 series in outer 5%: 207  contribution: 51.081
+biggest single days: [641 480  86] [10.294 10.251  6.097]
+without row 951: nu = 3.67  AICc gap = 195.885
+
+(j) lambda_t(X1,X2) = 0.3219  Gaussian = 0

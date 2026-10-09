@@ -1,0 +1,22 @@
+regime break: {'break_index': 461, 'n_after': 39, 'sd_before': 0.010159395097654835, 'sd_after': 0.024403568469255444, 'lr_stat': 89.80102566582536}
+
+(b)
+{'lambda': 0.94, 'n_eff': 32.333333333330934, 'half_life': 11.202305583621158, 'weight_last_39': 0.9104663498474529}
+{'lambda': 0.97, 'n_eff': 65.66663473349942, 'half_life': 22.75657306277341, 'weight_last_39': 0.6951421407745042}
+
+(c) Moments(n=500, mean=-2.220446049250313e-19, variance=0.00014189813094424568, std=0.011912100190321004, skew=-0.15605505650651794, excess_kurtosis=2.1659417931476597)
+
+(d) 5% VaR on $1M
+1 Normal equal weight: 19593.661202658834
+2 Normal EW 0.97     : 34619.07825547442
+3 Normal EW 0.94     : 38707.38141459739
+4 Student t          : 18872.45257735622
+5 Historical         : 20514.49826306685
+Student-t: mu=0.000181623, sigma=0.01029, nu=8.26991 | logL=1516.6916 AIC=-3027.3831 AICc=-3027.3347 BIC=-3014.7393
+
+(f) calm sd: 0.010168448789784545  stress sd: 0.024605580541659195
+mixture excess kurtosis: 2.6757534263543405
+(g) lambda 0.97: SE of VaR = 3,021
+(g) lambda 0.94: SE of VaR = 4,813
+gap between the EW VaRs: 4088.3031591229665
+VaR in the stress regime: 40472.57839719471  calm regime: 16725.60987234742

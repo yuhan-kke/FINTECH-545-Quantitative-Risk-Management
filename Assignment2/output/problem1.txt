@@ -1,0 +1,51 @@
+Jointly observed days:
+        A    B    C   D  IDX
+A    242  242  221  93  242
+B    242  242  221  93  242
+C    221  221  228  83  228
+D     93   93   83  96   96
+IDX  242  242  228  96  250
+Days all five trade: 81
+
+Complete case:
+           A       B       C       D     IDX
+A    1.0000  0.3967  0.2466  0.4136  0.8714
+B    0.3967  1.0000  0.3169  0.2361  0.6709
+C    0.2466  0.3169  1.0000  0.1852  0.5648
+D    0.4136  0.2361  0.1852  1.0000  0.5719
+IDX  0.8714  0.6709  0.5648  0.5719  1.0000
+eigenvalues: [1.506000e-03 5.483450e-01 6.933200e-01 8.704410e-01 2.886388e+00]
+Cholesky succeeds: True
+
+Pairwise:
+           A       B       C       D     IDX
+A    1.0000  0.4686  0.4309  0.4384  0.8696
+B    0.4686  1.0000  0.4630  0.2767  0.7329
+C    0.4309  0.4630  1.0000  0.1846  0.7136
+D    0.4384  0.2767  0.1846  1.0000  0.6057
+IDX  0.8696  0.7329  0.7136  0.6057  1.0000
+eigenvalues: [-0.011072  0.471422  0.528367  0.857381  3.153902]
+Cholesky succeeds: False
+
+full-history std: [0.016502 0.011919 0.018324 0.022829 0.012281]
+tracking variance (pairwise): -1.799369655069077e-06
+cos(tracking weights, negative eigenvector): 0.9986371546887515
+
+Rebonato-Jaeckel: min eig = -7.515e-17, Frobenius = 0.016182, tracking var = 6.8073e-07
+
+Higham: min eig = -5.910e-11, Frobenius = 0.015520, tracking var = 6.7876e-07
+
+(g) realised var(IDX - basket) on complete rows: 3.222051772083874e-07
+
+(h) Higham change by entry:
+           A       B       C       D     IDX
+A    0.0000  0.0020  0.0023  0.0018 -0.0070
+B    0.0020  0.0000  0.0014  0.0011 -0.0042
+C    0.0023  0.0014  0.0000  0.0012 -0.0048
+D    0.0018  0.0011  0.0012  0.0000 -0.0037
+IDX -0.0070 -0.0042 -0.0048 -0.0037  0.0000
+
+(i) ||Higham - pairwise||  = 0.0155
+    ||complete - pairwise|| = 0.4239
+    tracking var with complete-case corr: 1.0975452996002874e-06
+    eigenvector of the negative eigenvalue (A,B,C,D,IDX): [-0.3943 -0.2336 -0.2669 -0.2086  0.8217]

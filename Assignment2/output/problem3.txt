@@ -1,0 +1,37 @@
+(a)
+                             A             B
+n                10000.000000  10000.000000
+mean                 0.083709      0.085011
+variance             0.018493      0.017451
+std                  0.135988      0.132102
+skew                -4.823246     -4.915516
+excess_kurtosis     22.093642     23.086508
+
+(b) loss > 20%: A 406  B 393  at least one 782  both 17
+
+(c) historical, 5%
+                  VaR 5%     ES 5%
+$1M A          -84570.0  443628.0
+$1M B          -86063.0  419587.0
+$2M A         -169140.0  887257.0
+$1M A + $1M B  414604.0  541997.0
+
+(d) normal, 5%
+                Normal VaR 5%  Normal ES 5%
+$1M A               139971.0      196794.0
+$1M B               132277.0      187477.0
+$2M A               279941.0      393589.0
+$1M A + $1M B       143466.0      222774.0
+
+(e) historical, 1%
+                   VaR 1%      ES 1%
+$1M A           649701.0   709548.0
+$1M B           640393.0   700805.0
+$2M A          1299403.0  1419096.0
+$1M A + $1M B   598123.0   716408.0
+
+(f) var_hist: {'rho(A+B)': 414604.1533559009, 'rho(A)+rho(B)': -170633.26103825745, 'subadditive': False}
+
+(f) es_hist: {'rho(A+B)': 541997.2387029593, 'rho(A)+rho(B)': 863215.586986575, 'subadditive': True}
+
+correlation of the big-loss indicators: 0.0027
