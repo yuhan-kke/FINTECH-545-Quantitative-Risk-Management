@@ -116,10 +116,28 @@ class CopulaFit:
         return simulate_copula(self, n_sims, seed)
 
 
-def fit_gaussian_copula(U, R=None) -> CopulaFit:
-    """R defaults to sin(pi/2 tau) from Kendall's tau of U."""
+def copula_corr(U, method: str = "spearman") -> np.ndarray:
+    """Correlation matrix to plug into a Gaussian copula.
+    'spearman' : Spearman rank correlation of U (FINTECH 545 course convention)
+    'kendall'  : sin(pi/2 * Kendall tau) (exact for elliptical copulas)
+    'pearson'  : Pearson correlation of the normal scores Phi^-1(U)."""
     U = np.asarray(U, dtype=float)
-    R = kendall_to_pearson(kendall_matrix(U)) if R is None else np.asarray(R)
+    if method == "spearman":
+        R = pd.DataFrame(U).corr(method="spearman").values
+    elif method == "kendall":
+        return kendall_to_pearson(kendall_matrix(U))
+    elif method == "pearson":
+        R = np.corrcoef(stats.norm.ppf(np.clip(U, 1e-12, 1 - 1e-12)).T)
+    else:
+        raise ValueError("method must be 'spearman', 'kendall' or 'pearson'")
+    return R if is_psd(R) else near_psd(R)
+
+
+def fit_gaussian_copula(U, R=None, method: str = "kendall") -> CopulaFit:
+    """Gaussian copula on uniforms U. R given -> used as is; otherwise built
+    with copula_corr(U, method)."""
+    U = np.asarray(U, dtype=float)
+    R = copula_corr(U, method) if R is None else np.asarray(R)
     d = U.shape[1]
     ll = gaussian_copula_logpdf(U, R)
     return CopulaFit("gaussian", R, None, float(ll.sum()), len(U),
@@ -196,3 +214,89 @@ def outer_tail_mask(U, q: float = 0.05) -> np.ndarray:
     """True on rows where any column is in its outer q on either side."""
     U = np.asarray(U, dtype=float)
     return ((U < q) | (U > 1 - q)).any(axis=1)
+
+
+def copula_simulate_pnl(returns: pd.DataFrame, dollars, margin: str = "best",
+                        method: str = "spearman", n_sims: int = 100_000, seed=None,
+                        copula: str = "gaussian"):
+    """Simulate $ P&L for each asset with a fitted copula.
+
+    returns : DataFrame of (usually de-meaned) returns, one column per asset
+    dollars : $ held in each asset (same order as the columns)
+    margin  : 'best' (normal vs t by AICc per column), 't' or 'normal'
+    method  : copula correlation, see copula_corr ('spearman' = course)
+    copula  : 'gaussian' or 't'
+    Returns (pnl DataFrame n_sims x assets, info dict with R, margins, fit).
+    """
+    from .fitting import fit_normal, fit_t
+    cols = list(returns.columns)
+    if margin == "best":
+        margins, _ = fit_margins(returns)
+    elif margin == "t":
+        margins = [fit_t(returns[c]) for c in cols]
+    elif margin == "normal":
+        margins = [fit_normal(returns[c]) for c in cols]
+    else:
+        raise ValueError("margin must be 'best', 't' or 'normal'")
+    U = margin_uniforms(returns, margins)
+    R = copula_corr(U, method)
+    fit = fit_gaussian_copula(U, R) if copula == "gaussian" else fit_t_copula(U, R)
+    _, sim = simulate_returns(fit, margins, n_sims, seed)
+    pnl = pd.DataFrame(sim * np.asarray(dollars, dtype=float), columns=cols)
+    return pnl, {"R": pd.DataFrame(R, cols, cols), "margins": dict(zip(cols, margins)),
+                 "fit": fit}
+
+
+def copula_var_es(returns: pd.DataFrame, dollars, alphas=(0.05,), margin: str = "best",
+                  method: str = "spearman", n_sims: int = 100_000, seed=None):
+    """One-shot Gaussian-copula VaR/ES in dollars for each column and the
+    portfolio. Returns (table, corr_matrix, margins list)."""
+    from .risk import var_es_table
+    pnl, info = copula_simulate_pnl(returns, dollars, margin, method, n_sims, seed)
+    d = {c: pnl[c].values for c in pnl}
+    d["Portfolio"] = pnl.sum(axis=1).values
+    return var_es_table(d, alphas), info["R"], list(info["margins"].values())
+
+
+def hist_var_es(returns: pd.DataFrame, dollars, alphas=(0.05,)):
+    """Historical-simulation VaR/ES in dollars for each column and the portfolio."""
+    from .risk import var_es_table
+    w = np.asarray(dollars, dtype=float)
+    X = returns.values
+    pnl = {c: w[i] * X[:, i] for i, c in enumerate(returns.columns)}
+    pnl["Portfolio"] = X @ w
+    return var_es_table(pnl, alphas)
+
+
+def hist_pnl(returns: pd.DataFrame, dollars) -> pd.DataFrame:
+    """Historical $ P&L per asset: each past return times today's $ holding."""
+    return returns * np.asarray(dollars, dtype=float)
+
+
+def choose_copula(U, R=None, nu_max: float = 100.0):
+    """Gaussian vs t copula, the Week 05 Sec 6.5 way.
+
+    Margins are already fitted and frozen; both copulas get the SAME R from
+    Kendall's tau (sin(pi*tau/2)); nu is profiled on 2 < nu <= nu_max with the
+    search done over theta = 1/nu; parameter counts k_Gauss = 0, k_t = 1.
+    Returns (table, gaussian_fit, t_fit). Take the t when dBIC > 0.
+    """
+    U = np.asarray(U, dtype=float)
+    R = kendall_to_pearson(kendall_matrix(U)) if R is None else np.asarray(R)
+    if not is_psd(R):
+        R = near_psd(R)
+    m = len(U)
+    llg = gaussian_copula_logpdf(U, R)
+    thetas = np.linspace(1 / nu_max, 0.49, 200)              # 200-point grid in 1/nu
+    prof = np.array([t_copula_logpdf(U, R, 1 / th).sum() for th in thetas])
+    i = int(np.argmax(prof))
+    lo, hi = thetas[max(i - 1, 0)], thetas[min(i + 1, len(thetas) - 1)]
+    res = optimize.minimize_scalar(lambda th: -t_copula_logpdf(U, R, 1 / th).sum(),
+                                   bounds=(lo, hi), method="bounded")
+    nu = float(1 / res.x)
+    llt = t_copula_logpdf(U, R, nu)
+    g = CopulaFit("gaussian", R, None, float(llg.sum()), m, 0, llg)
+    t = CopulaFit("t", R, nu, float(llt.sum()), m, 1, llt)
+    tab = compare_copulas(g, t)
+    tab["dBIC (t vs Gauss)"] = [np.nan, 2 * (t.loglik - g.loglik) - np.log(m)]
+    return tab, g, t

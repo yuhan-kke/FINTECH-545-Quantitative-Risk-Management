@@ -44,13 +44,32 @@ def select_arma(x, orders=None, trend: str = "c") -> pd.DataFrame:
 
 
 def acf(x, nlags: int = 20) -> np.ndarray:
-    from statsmodels.tsa.stattools import acf as _acf
-    return _acf(np.asarray(x, dtype=float), nlags=nlags)
+    """Sample autocorrelation, lags 0..nlags (numpy only; matches
+    statsmodels.tsa.stattools.acf: demeaned, denominator n)."""
+    x = np.asarray(x, dtype=float)
+    x = x[~np.isnan(x)] - np.nanmean(x)
+    n = len(x)
+    g = np.array([x[: n - k] @ x[k:] / n for k in range(nlags + 1)])
+    return g / g[0]
 
 
 def pacf(x, nlags: int = 20) -> np.ndarray:
-    from statsmodels.tsa.stattools import pacf as _pacf
-    return _pacf(np.asarray(x, dtype=float), nlags=nlags, method="ywm")
+    """Partial autocorrelation, lags 0..nlags, by Durbin-Levinson on the
+    sample ACF (numpy only; matches statsmodels pacf method='ywm')."""
+    r = acf(x, nlags)
+    out = np.zeros(nlags + 1)
+    out[0] = 1.0
+    phi = np.zeros(nlags + 1)
+    v = 1.0
+    for k in range(1, nlags + 1):
+        a = (r[k] - phi[1:k] @ r[1:k][::-1]) / v
+        new = phi.copy()
+        new[k] = a
+        new[1:k] = phi[1:k] - a * phi[1:k][::-1]
+        phi = new
+        v *= (1 - a ** 2)
+        out[k] = a
+    return out
 
 
 def variance_breakpoint(x, min_size: int = 10) -> dict:

@@ -55,17 +55,21 @@ def es_t(nu: float, mu: float = 0.0, sigma: float = 1.0, alpha: float = 0.05) ->
     return float(-mu + sigma * (nu + q * q) / (nu - 1) * stats.t.pdf(q, nu) / alpha)
 
 
-def var_dist(dist, alpha: float = 0.05) -> float:
-    """VaR of any frozen scipy distribution of P&L / returns."""
-    return float(-dist.ppf(alpha))
+def var_dist(dist, alpha: float = 0.05, relative: bool = False) -> float:
+    """VaR of any frozen scipy distribution of P&L / returns.
+    relative=False -> distance from 0 (default, course convention);
+    relative=True  -> distance from the distribution's mean."""
+    v = float(-dist.ppf(alpha))
+    return v + float(dist.mean()) if relative else v
 
 
-def es_dist(dist, alpha: float = 0.05) -> float:
+def es_dist(dist, alpha: float = 0.05, relative: bool = False) -> float:
     """ES of any frozen scipy distribution by numerical integration of the
     quantile function: ES = -(1/alpha) * int_0^alpha F^-1(u) du."""
     from scipy import integrate
     val, _ = integrate.quad(dist.ppf, 1e-12, alpha, limit=200)
-    return float(-val / alpha)
+    v = float(-val / alpha)
+    return v + float(dist.mean()) if relative else v
 
 
 def delta_normal_var(weights, cov, alpha: float = 0.05, mu=None) -> float:
@@ -128,3 +132,79 @@ def ew_var_standard_error(sigma: float, n_eff: float, alpha: float = 0.05,
                           position: float = 1.0) -> float:
     """SE of a normal VaR built from an EW volatility: z * sigma / sqrt(2 n_eff)."""
     return float(-stats.norm.ppf(alpha) * sigma / np.sqrt(2 * n_eff) * position)
+
+
+def fitted_var_es_table(fits: dict, alphas=(0.05,), position: float = 1.0,
+                        relative: bool = False):
+    """VaR / ES for several fitted distributions. fits: {name: FitResult or
+    frozen scipy dist}. position scales returns into dollars."""
+    import pandas as pd
+    rows = {}
+    for name, f in fits.items():
+        # FitResult carries .dist; a frozen scipy dist ALSO has .dist (its
+        # generic class), so only unwrap objects that are not frozen dists.
+        d = f if hasattr(f, "ppf") and hasattr(f, "mean") and not hasattr(f, "loglik") else f.dist
+        row = {}
+        for a in alphas:
+            row[f"VaR {a:.0%}"] = var_dist(d, a, relative) * position
+            row[f"ES {a:.0%}"] = es_dist(d, a, relative) * position
+        rows[name] = row
+    return pd.DataFrame(rows).T
+
+
+def group_var_es(pnl, groups: dict, alphas=(0.05,)):
+    """VaR / ES for groups of assets (e.g. trading books) and the total.
+
+    pnl    : DataFrame of $ P&L, one column per asset (simulated or historical)
+    groups : {"A": ["S1", "S2"], "B": [...]}   or a Series asset -> group
+    Adds rows 'Total' and 'Sum of groups', plus a diversification row
+    (Sum of groups - Total; positive = diversification benefit).
+    """
+    import pandas as pd
+    if not isinstance(groups, dict):
+        groups = {g: list(idx) for g, idx in pd.Series(groups).groupby(pd.Series(groups)).groups.items()}
+    books = {g: pnl[list(cols)].sum(axis=1).values for g, cols in groups.items()}
+    total = pnl.sum(axis=1).values
+    tab = var_es_table({**books, "Total": total}, alphas)
+    tab.loc["Sum of groups"] = tab.loc[list(groups)].sum()
+    tab.loc["Diversification"] = tab.loc["Sum of groups"] - tab.loc["Total"]
+    return tab
+
+
+def es_contributions(pnl, alpha: float = 0.05, groups: dict | None = None):
+    """Component ES: each asset's (or group's) average loss on the scenarios
+    in the total's alpha tail. Contributions add up exactly to the total ES
+    (Euler allocation for ES). Also returns each part's share of total ES."""
+    import pandas as pd
+    if groups is not None:
+        pnl = pd.DataFrame({g: pnl[list(c)].sum(axis=1) for g, c in groups.items()})
+    total = pnl.sum(axis=1).values
+    v = np.quantile(total, alpha)
+    tail = total <= v
+    contrib = -pnl[tail].mean()
+    out = pd.DataFrame({"ES contribution": contrib,
+                        "share": contrib / contrib.sum()})
+    out.loc["Total"] = [contrib.sum(), 1.0]
+    return out
+
+
+def weighted_hist_var_es(x, lam: float = 0.94, alpha: float = 0.05):
+    """Weighted historical simulation (Week 04 Sec 6.2), computed exactly
+    rather than by resampling: each past day gets EW weight (newest largest,
+    x oldest first), sort outcomes, VaR = -(first outcome where cumulative
+    weight >= alpha), ES = -(weighted mean of outcomes in that tail)."""
+    from .covariance import ew_weights
+    x = np.asarray(x, dtype=float)
+    w = ew_weights(len(x), lam)
+    o = np.argsort(x)
+    xs, cw = x[o], np.cumsum(w[o])
+    k = int(np.searchsorted(cw, alpha))
+    var = -xs[k]
+    es = -np.sum(w[o][:k + 1] * xs[:k + 1]) / cw[k]
+    return float(var), float(es)
+
+
+def sqrt_t_var(var_1day: float, T: int) -> float:
+    """Square-root-of-time rule (Week 04 Sec 7): VaR_T = sqrt(T) VaR_1.
+    Needs normal, iid, constant variance, zero mean."""
+    return float(np.sqrt(T) * var_1day)

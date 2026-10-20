@@ -118,3 +118,27 @@ def higham_psd(A, weights=None, tol: float = 1e-10, max_iter: int = 10_000,
     Y = (Y + Y.T) / 2
     out = Y if sd is None else cor2cov(Y, sd)
     return (out, it) if return_iterations else out
+
+
+def psd_status(A, tol: float = 1e-8) -> str:
+    """'Positive Definite', 'Positive Semi-Definite' or 'Non-Definite' from the
+    smallest eigenvalue (|lambda| <= tol counts as zero)."""
+    m = min_eigenvalue(A)
+    if m > tol:
+        return "Positive Definite"
+    if m >= -tol:
+        return "Positive Semi-Definite"
+    return "Non-Definite"
+
+
+def pca_explained(A, names=None):
+    """PCA of a (PSD) covariance/correlation matrix: eigenvalues sorted
+    largest -> smallest, variance explained and cumulative explained.
+    Tiny negative eigenvalues from rounding are clipped to 0."""
+    import pandas as pd
+    lam = np.sort(np.linalg.eigvalsh(_arr(A)))[::-1]
+    lam = np.clip(lam, 0.0, None)
+    share = lam / lam.sum()
+    idx = names or [f"PC{i + 1}" for i in range(len(lam))]
+    return pd.DataFrame({"eigenvalue": lam, "explained": share,
+                         "cumulative": np.cumsum(share)}, index=idx)

@@ -42,6 +42,12 @@ def joint_counts(x) -> pd.DataFrame:
     return m.T @ m
 
 
+def missing_corr(x, skip_missing: bool = True) -> pd.DataFrame:
+    """Correlation with missing values (see missing_cov). skip_missing=False
+    -> pairwise (may not be PSD); True -> complete rows only."""
+    return missing_cov(x, skip_missing=skip_missing, corr=True)
+
+
 def missing_cov(x, skip_missing: bool = True, corr: bool = False,
                 ddof: int = 1) -> pd.DataFrame:
     """Covariance (or correlation) with missing values.
@@ -100,22 +106,45 @@ def ew_std(x, lam: float, demean: bool = False) -> float:
     return float(np.sqrt(w @ xc ** 2))
 
 
-def ew_cov(x, lam: float = 0.97, corr: bool = False) -> pd.DataFrame:
-    """Exponentially weighted covariance (RiskMetrics style). Rows must be
-    in time order, oldest first. Weighted mean is removed first."""
+def ew_cov(x, lam: float = 0.97, corr: bool = False, mean: str = "simple") -> pd.DataFrame:
+    """Exponentially weighted covariance (or correlation if corr=True).
+
+    Rows must be in time order, OLDEST FIRST. Weights w_i ∝ (1-lam) lam^(i-1)
+    with the newest row getting the largest weight, normalised to sum to 1.
+
+    mean="simple"   (default) subtract the ordinary sample mean first - this is
+                    the FINTECH 545 course convention (ewCovar) and matches the
+                    answer keys.
+    mean="weighted" subtract the exponentially weighted mean instead.
+    mean="none"     assume the data are already zero-mean.
+    """
     df = _df(x).dropna()
     X = df.values
     w = ew_weights(len(X), lam)
-    Xc = X - w @ X
+    if mean == "simple":
+        Xc = X - X.mean(axis=0)
+    elif mean == "weighted":
+        Xc = X - w @ X
+    elif mean == "none":
+        Xc = X
+    else:
+        raise ValueError("mean must be 'simple', 'weighted' or 'none'")
     S = (w[:, None] * Xc).T @ Xc
     if corr:
         S, _ = cov2cor(S)
     return pd.DataFrame(S, index=df.columns, columns=df.columns)
 
 
-def ew_cov_mixed(x, lam_var: float = 0.97, lam_corr: float = 0.94) -> pd.DataFrame:
-    """Covariance using EW variances with one lambda and EW correlation
-    with another."""
-    _, sd = cov2cor(ew_cov(x, lam_var).values)
-    R = ew_cov(x, lam_corr, corr=True)
+def ew_var(x, lam: float = 0.97, mean: str = "simple") -> pd.Series:
+    """Exponentially weighted variance of every column (diagonal of ew_cov)."""
+    S = ew_cov(x, lam, mean=mean)
+    return pd.Series(np.diag(S.values), index=S.columns)
+
+
+def ew_cov_mixed(x, lam_var: float, lam_corr: float, mean: str = "simple") -> pd.DataFrame:
+    """Covariance built from EW variances (lam_var) and EW correlation
+    (lam_corr): Sigma = D R D with D = diag(sqrt(EW variances)).
+    Both lambdas are REQUIRED so they can never be silently swapped."""
+    sd = np.sqrt(ew_var(x, lam_var, mean=mean).values)
+    R = ew_cov(x, lam_corr, corr=True, mean=mean)
     return pd.DataFrame(cor2cov(R.values, sd), index=R.index, columns=R.columns)

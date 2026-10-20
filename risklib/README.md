@@ -7,8 +7,10 @@ A small quantitative risk management library for the FINTECH 545 assignments.
 ```bash
 pip install -e .          # from this folder
 pip install -e ".[dev]"   # plus pytest
-pytest                    # 24 tests
+pytest                    # 36 tests
 ```
+
+**Exam prep:** see [`GUIDE.md`](GUIDE.md) for recipes by question type and [`examples/exam_template.py`](examples/exam_template.py) for a runnable template.
 
 ## What's in it
 
@@ -16,13 +18,15 @@ pytest                    # 24 tests
 |---|---|
 | `moments` | `first4_moments`, `moments_table`, `drop_most_extreme`, `mixture_excess_kurtosis`, `tail_exceedances` |
 | `fitting` | `fit_normal`, `fit_t`, `ols`, `fit_regression_normal`, `fit_regression_t`, `aic`, `aicc`, `bic`, `compare_fits` |
-| `covariance` | `pearson`, `spearman`, `joint_counts`, `missing_cov` (complete-case or pairwise), `ew_diagnostics`, `ew_std`, `ew_cov`, `ew_cov_mixed`, `cov2cor`, `cor2cov` |
-| `psd` | `is_psd`, `min_eigenvalue`, `chol_psd` (works on singular PSD), `try_cholesky`, `near_psd` (Rebonato–Jäckel), `higham_psd` (Higham, optional weights), `frobenius` |
+| `covariance` | `pearson`, `spearman`, `joint_counts`, `missing_cov` / `missing_corr` (complete-case or pairwise), `ew_diagnostics`, `ew_std`, `ew_cov` (simple-mean by default), `ew_var`, `ew_cov_mixed`, `cov2cor`, `cor2cov` |
+| `psd` | `is_psd`, `min_eigenvalue`, `chol_psd` (works on singular PSD), `try_cholesky`, `near_psd` (Rebonato–Jäckel), `higham_psd` (Higham, optional weights), `frobenius`, `psd_status`, `pca_explained` |
 | `mvn` | `conditional_normal`, `band_coverage`, `simulate_normal`, `simulate_pca` |
 | `timeseries` | `fit_arma`, `select_arma` (AICc ranking), `model_aicc`, `acf`, `pacf`, `variance_breakpoint` |
 | `returns` | `return_calculate` (arithmetic / log / diff) |
-| `risk` | `var_hist`, `es_hist`, `var_normal`, `es_normal`, `var_t`, `es_t`, `delta_normal_var`, `portfolio_variance`, `var_es_table`, `normal_var_es_table`, `subadditivity`, `ew_var_standard_error` |
-| `copula` | `rank_uniforms`, `joint_tail_counts`, `fit_margins`, `margin_uniforms`, `kendall_to_pearson`, `fit_gaussian_copula`, `fit_t_copula`, `compare_copulas`, `simulate_returns`, `outer_tail_mask`, `t_tail_dependence` |
+| `risk` | `var_hist`, `es_hist`, `var_normal`, `es_normal`, `var_t`, `es_t`, `delta_normal_var`, `portfolio_variance`, `var_es_table`, `normal_var_es_table`, `subadditivity`, `ew_var_standard_error`, `fitted_var_es_table`, `group_var_es`, `es_contributions`; `var_dist`/`es_dist` take `relative=True` |
+| `copula` | `rank_uniforms`, `joint_tail_counts`, `fit_margins`, `margin_uniforms`, `kendall_to_pearson`, `fit_gaussian_copula`, `fit_t_copula`, `compare_copulas`, `simulate_returns`, `outer_tail_mask`, `t_tail_dependence`, `copula_corr`, `copula_var_es`, `copula_simulate_pnl`, `hist_var_es`, `hist_pnl` |
+| `hedge` | `capm`, `hedge_ratio`, `hedged_var_es` |
+| `portfolio` | `equal_weight_shares`, `holdings_value`, `split_prices` |
 | `factor` | `fit_factor_model`, `factor_var_table` |
 | `plots` | `plot_series`, `plot_hists`, `plot_pairs`, `plot_bars` |
 
